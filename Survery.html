@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vota por Ideas de Libros</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-image: url('fondo.jpg');
+            background-size: cover;
+            background-position: center;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            width: 400px;
+            text-align: center;
+            position: relative;
+        }
+        .container img {
+            width: 80px;
+            height: auto;
+            margin-bottom: 20px;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        #ideas-list {
+            margin-bottom: 20px;
+        }
+        .idea {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            text-align: left;
+        }
+        .idea img {
+            width: 80px; /* Ajusta el tamaño de la imagen de portada según tus necesidades */
+            height: auto;
+            margin-right: 10px;
+        }
+        .idea p {
+            margin: 0;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        input[type="text"], input[type="password"], input[type="file"] {
+            padding: 10px;
+            width: 70%;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            margin-bottom: 10px;
+        }
+        form {
+            display: flex;
+            justify-content: space-between;
+            flex-direction: column;
+        }
+        .creator-name {
+            position: relative;
+            margin-top: 10px;
+            width: 100%;
+            text-align: center;
+            font-size: 14px;
+            color: #555;
+        }
+        .admin-buttons {
+            margin-top: 10px;
+            text-align: center;
+        }
+        .admin-buttons button {
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="register-container">
+        <img src="imagen-registro.jpg" alt="Imagen de Registro">
+        <div class="creator-name">Creador: Tu Nombre</div>
+        <h1>Registrarse</h1>
+        <form id="register-form">
+            <input type="text" id="register-username" placeholder="Nombre de usuario" required>
+            <input type="password" id="register-password" placeholder="Contraseña" required>
+            <button type="submit">Registrarse</button>
+        </form>
+        <p>¿Ya tienes una cuenta? <a href="#" id="show-login">Iniciar sesión</a></p>
+    </div>
+
+    <div class="container" id="login-container" style="display: none;">
+        <img src="imagen-login.jpg" alt="Imagen de Inicio de Sesión">
+        <div class="creator-name">Creador: Tu Nombre</div>
+        <h1>Iniciar Sesión</h1>
+        <form id="login-form">
+            <input type="text" id="login-username" placeholder="Nombre de usuario" required>
+            <input type="password" id="login-password" placeholder="Contraseña" required>
+            <button type="submit">Ingresar</button>
+        </form>
+    </div>
+
+    <div class="container" id="public-container" style="display: none;">
+        <h1>Vota por tu Idea de Libro Favorita</h1>
+        <div id="ideas-list">
+            <!-- Las ideas de libros se cargarán aquí -->
+        </div>
+        <button onclick="showAdmin()">Acceso de Administrador</button>
+    </div>
+
+    <div class="container" id="admin-container" style="display: none;">
+        <h1>Panel de Administración</h1>
+        <div id="admin-ideas-list">
+            <!-- Las ideas de libros se cargarán aquí -->
+        </div>
+        <form id="idea-form">
+            <input type="text" id="new-idea" placeholder="Título del libro" required>
+            <input type="file" id="cover-image" accept="image/*" required>
+            <button type="submit">Agregar Idea</button>
+        </form>
+        <div class="admin-buttons">
+            <button onclick="logout()">Cerrar Sesión</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const registerContainer = document.getElementById('register-container');
+            const loginContainer = document.getElementById('login-container');
+            const publicContainer = document.getElementById('public-container');
+            const adminContainer = document.getElementById('admin-container');
+            const ideasList = document.getElementById('ideas-list');
+            const adminIdeasList = document.getElementById('admin-ideas-list');
+            const ideaForm = document.getElementById('idea-form');
+            const newIdeaInput = document.getElementById('new-idea');
+            const coverImageInput = document.getElementById('cover-image');
+
+            let users = JSON.parse(localStorage.getItem('users')) || [];
+            let ideas = JSON.parse(localStorage.getItem('ideas')) || [];
+
+            const saveUsers = () => {
+                localStorage.setItem('users', JSON.stringify(users));
+            };
+
+            const saveIdeas = () => {
+                localStorage.setItem('ideas', JSON.stringify(ideas));
+            };
+
+            const getTotalVotes = () => {
+                return ideas.reduce((total, idea) => total + idea.votes, 0);
+            };
+
+            const renderIdeas = () => {
+                if (ideasList) {
+                    ideasList.innerHTML = '';
+                    ideas.forEach((idea, index) => {
+                        const ideaDiv = document.createElement('div');
+                        ideaDiv.className = 'idea';
+                        ideaDiv.innerHTML = `
+                            <img src="${idea.image}" alt="Portada del libro">
+                            <p>${idea.text}</p>
+                            <button onclick="vote(${index})">Votar</button>
+                        `;
+                        ideasList.appendChild(ideaDiv);
+                    });
+                }
+            };
+
+            const renderAdminIdeas = () => {
+                if (adminIdeasList) {
+                    adminIdeasList.innerHTML = '';
+                    ideas.forEach((idea, index) => {
+                        const ideaDiv = document.createElement('div');
+                        const percentage = ((idea.votes / getTotalVotes()) * 100).toFixed(2) || 0;
+                        ideaDiv.className = 'idea';
+                        ideaDiv.innerHTML = `
+                            <img src="${idea.image}" alt="Portada del libro">
+                            <p><strong>${idea.text}</strong></p>
+                            <p>Descripción: ${idea.description}</p>
+                            <p>Votos: ${idea.votes} (${percentage}%)</p>
+                            <button onclick="removeIdea(${index})">Eliminar</button>
+                        `;
+                        adminIdeasList.appendChild(ideaDiv);
+                    });
+                }
+            };
+
+            window.vote = (index) => {
+                ideas[index].votes++;
+                saveIdeas();
+                renderIdeas();
+            };
+
+            window.removeIdea = (index) => {
+                if (confirm('¿Estás seguro de que quieres eliminar esta idea?')) {
+                    ideas.splice(index, 1);
+                    saveIdeas();
+                    renderAdminIdeas();
+                    renderIdeas();
+                }
+            };
+
+            document.getElementById('register-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const username = document.getElementById('register-username').value.trim();
+                const password = document.getElementById('register-password').value;
+
+                if (users.some(user => user.username === username)) {
+                    alert('El nombre de usuario ya está en uso.');
+                } else {
+                    users.push({ username, password });
+                    saveUsers();
+                    alert('Registro exitoso. Ahora puedes iniciar sesión.');
+                    document.getElementById('register-form').reset();
+                    loginContainer.style.display = 'block';
+                    registerContainer.style.display = 'none';
+                }
+            });
+
+            document.getElementById('login-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const username = document.getElementById('login-username').value.trim();
+                const password = document.getElementById('login-password').value;
+
+                const user = users.find(user => user.username === username && user.password === password);
+                if (user) {
+                    loginContainer.style.display = 'none';
+                    publicContainer.style.display = 'block';
+                    renderIdeas();
+                } else {
+                    alert('Nombre de usuario o contraseña incorrectos.');
+                }
+            });
+
+            document.getElementById('show-login').addEventListener('click', (e) => {
+                e.preventDefault();
+                registerContainer.style.display = 'none';
+                loginContainer.style.display = 'block';
+            });
+
+            window.showAdmin = () => {
+                const adminCode = prompt('Introduce el código secreto de administrador:');
+                const validAdminCode = 'Fenix forjado';
+
+                if (adminCode === validAdminCode) {
+                    publicContainer.style.display = 'none';
+                    adminContainer.style.display = 'block';
+                    renderAdminIdeas();
+                } else {
+                    alert('Código incorrecto');
+                }
+            };
+
+            const generateDescription = (title) => {
+                return `Un libro emocionante titulado "${title}", que te llevará a un viaje inolvidable lleno de aventuras y sorpresas.`;
+            };
+
+            ideaForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const newIdeaText = newIdeaInput.value.trim();
+                const coverImage = coverImageInput.files[0];
+                if (newIdeaText && coverImage) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const imageUrl = event.target.result;
+                        ideas.push({
+                            text: newIdeaText,
+                            description: generateDescription(newIdeaText),
+                            votes: 0,
+                            image: imageUrl
+                        });
+                        saveIdeas();
+                        newIdeaInput.value = '';
+                        coverImageInput.value = '';
+                        renderAdminIdeas();
+                    };
+                    reader.readAsDataURL(coverImage);
+                } else {
+                    alert('Por favor, ingresa un título y selecciona una imagen.');
+                }
+            });
+
+            window.logout = () => {
+                adminContainer.style.display = 'none';
+                publicContainer.style.display = 'block';
+            };
+        });
+    </script>
+</body>
+</html>
